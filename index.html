@@ -12,66 +12,97 @@
             align-items: center;
             min-height: 100vh;
             margin: 0;
-            background-color: #f0f0f0;
+            background-color: #2c3e50; /* 배경색을 조금 더 어둡고 고급스럽게 변경 */
             font-family: 'Malgun Gothic', Arial, sans-serif;
             flex-direction: column;
         }
 
-        /* 게임 제목 스타일 추가 */
         .game-title {
-            font-size: 2.5em;
+            font-size: 3em;
             font-weight: bold;
-            color: #333;
+            color: #ecf0f1;
             margin-bottom: 20px;
-            text-shadow: 2px 2px 4px rgba(0,0,0,0.1);
+            text-shadow: 3px 3px 5px rgba(0,0,0,0.3);
         }
 
         .game-container {
             display: flex;
             gap: 20px;
-            border: 5px solid #333;
-            padding: 10px;
-            background-color: #eee;
-            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+            border: 8px solid #34495e;
+            padding: 15px;
+            background-color: #34495e;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+            border-radius: 10px;
         }
 
         #tetris-canvas {
-            border: 1px solid #000;
+            border: 2px solid #2c3e50;
             display: block;
             background-color: #000;
+            box-shadow: inset 0 0 10px rgba(255,255,255,0.1);
         }
 
         .sidebar {
-            width: 150px;
-            padding: 10px;
-            background-color: #fff;
-            border-radius: 5px;
+            width: 160px;
+            padding: 20px;
+            background-color: #ecf0f1;
+            border-radius: 8px;
             text-align: center;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+
+        .score-box {
+            background-color: #2c3e50;
+            color: #f1c40f; /* 금색 점수 */
+            padding: 15px 5px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+        }
+
+        .score-label {
+            display: block;
+            font-size: 0.9em;
+            color: #bdc3c7;
+            margin-bottom: 5px;
+        }
+
+        #score {
+            font-size: 2em;
+            font-weight: bold;
         }
 
         .sidebar p {
-            font-size: 1.2em;
+            font-size: 1.1em;
             font-weight: bold;
+            color: #34495e;
             margin: 10px 0;
         }
         
         #start-button {
-            padding: 10px 20px;
-            font-size: 1.1em;
+            padding: 15px;
+            font-size: 1.2em;
+            font-weight: bold;
             cursor: pointer;
-            background-color: #4CAF50;
+            background-color: #27ae60;
             color: white;
             border: none;
             border-radius: 5px;
-            margin-top: 20px;
+            transition: background 0.2s;
             width: 100%;
+        }
+
+        #start-button:hover {
+            background-color: #2ecc71;
         }
         
         #game-status {
-            color: red;
-            font-size: 1.5em;
-            margin-top: 10px;
+            color: #e74c3c;
+            font-size: 1.2em;
+            margin-top: 15px;
             font-weight: bold;
+            min-height: 1.5em;
         }
     </style>
 </head>
@@ -82,17 +113,25 @@
         <canvas id="tetris-canvas" width="300" height="600"></canvas>
         
         <div class="sidebar">
-            <p>Score: <span id="score">0</span></p>
-            <p>Next: <br><span id="next-piece"></span></p>
-            <hr>
-            <button id="start-button">게임 시작</button>
-            <div id="game-status"></div>
+            <div>
+                <div class="score-box">
+                    <span class="score-label">SCORE</span>
+                    <span id="score">0</span>
+                </div>
+                <p>Next Piece</p>
+                <div style="height: 100px; display: flex; align-items: center; justify-content: center; background: #ddd; border-radius: 5px; color: #999;">
+                    준비중...
+                </div>
+            </div>
+
+            <div>
+                <div id="game-status"></div>
+                <button id="start-button">게임 시작</button>
+            </div>
         </div>
     </div>
     
     <script>
-        /* 🧠 JavaScript: 게임 논리 (기존 로직 유지) */
-        
         const CANVAS = document.getElementById('tetris-canvas');
         const CTX = CANVAS.getContext('2d');
         const SCORE_ELEM = document.getElementById('score');
@@ -109,7 +148,7 @@
         let board;
         let currentPiece;
         let score = 0;
-        let gameOver = false;
+        let gameOver = true; // 처음에는 대기 상태
         let gameLoop;
         let dropCounter = 0;
         let dropInterval = 1000;
@@ -117,7 +156,7 @@
         
         const COLORS = [
             null,
-            'cyan', 'blue', 'orange', 'yellow', 'lime', 'purple', 'red'
+            '#00f0f0', '#0000f0', '#f0a000', '#f0f000', '#00f000', '#a000f0', '#f00000'
         ];
 
         const TETROMINOS = [
@@ -134,9 +173,13 @@
         function createBoard() {
             board = Array.from({length: ROWS}, () => Array(COLS).fill(0));
             score = 0;
-            SCORE_ELEM.innerText = score;
+            updateScoreDisplay();
             GAME_STATUS.innerText = '';
             gameOver = false;
+        }
+
+        function updateScoreDisplay() {
+            SCORE_ELEM.innerText = score.toLocaleString(); // 천 단위 콤마 추가
         }
 
         function spawnNewPiece() {
@@ -152,7 +195,6 @@
             if (checkCollision(board, currentPiece)) {
                 gameOver = true;
                 GAME_STATUS.innerText = 'GAME OVER';
-                cancelAnimationFrame(gameLoop);
             }
         }
 
@@ -195,9 +237,11 @@
                 linesCleared++;
                 y++;
             }
+            
             if (linesCleared > 0) {
-                score += linesCleared * 100 * linesCleared;
-                SCORE_ELEM.innerText = score;
+                // 점수 계산: 1줄 100, 2줄 400, 3줄 900, 4줄 1600 (줄 수의 제곱 * 100)
+                score += (linesCleared * linesCleared) * 100;
+                updateScoreDisplay();
             }
         }
 
@@ -207,7 +251,8 @@
                     if (value !== 0) {
                         CTX.fillStyle = COLORS[value];
                         CTX.fillRect((x + offset.x) * BLOCK_SIZE, (y + offset.y) * BLOCK_SIZE, BLOCK_SIZE, BLOCK_SIZE);
-                        CTX.strokeStyle = '#333';
+                        // 블록 테두리 효과
+                        CTX.strokeStyle = 'rgba(0,0,0,0.5)';
                         CTX.strokeRect((x + offset.x) * BLOCK_SIZE, (y + offset.y) * BLOCK_SIZE, BLOCK_SIZE, BLOCK_SIZE);
                     }
                 });
@@ -217,6 +262,12 @@
         function drawBoard() {
             CTX.fillStyle = '#000';
             CTX.fillRect(0, 0, CANVAS.width, CANVAS.height);
+            
+            // 격자무늬 배경 (선택사항)
+            CTX.strokeStyle = '#111';
+            for(let i=0; i<COLS; i++) CTX.strokeRect(i*BLOCK_SIZE, 0, 1, CANVAS.height);
+            for(let i=0; i<ROWS; i++) CTX.strokeRect(0, i*BLOCK_SIZE, CANVAS.width, 1);
+
             drawMatrix(board, {x: 0, y: 0});
             if (currentPiece) {
                 drawMatrix(currentPiece.matrix, currentPiece.pos);
@@ -231,6 +282,7 @@
         }
 
         function dropPiece() {
+            if (gameOver) return;
             currentPiece.pos.y++;
             if (checkCollision(board, currentPiece)) {
                 currentPiece.pos.y--;
@@ -287,8 +339,10 @@
             createBoard();
             spawnNewPiece();
             update();
+            START_BUTTON.innerText = "다시 시작";
         });
 
+        // 초기 화면
         drawBoard();
     </script>
 </body>
